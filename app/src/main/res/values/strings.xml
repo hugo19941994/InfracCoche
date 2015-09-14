@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">UEM - Infracciones Coches</string>
+    <string name="title_activity_maps">Infracciones Coches</string>
+    <string name="button_add_marker">Add Marker on Current Position</string>
+    <string name="google_maps_key" translatable="false" templateMergeStrategy="preserve">AIzaSyBB4SqLJQObsdtygC5_vDYvFqOagXePKAQ</string>
+</resources>
