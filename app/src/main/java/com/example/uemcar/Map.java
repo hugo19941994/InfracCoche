@@ -1,50 +1,32 @@
+/**
+ * UEM 2015 - Sistema de Detección, Alerta y Registro de Infracciones de Tráfico
+ * Nourdine Aliane
+ * Mario Mata
+ * Hugo Ferrando Seage
+ * Rafael
+ * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
+ */
+
 package com.example.uemcar;
 
 import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
-import android.view.View;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-/**
- * Created by Hugo on 02/07/2015.
- */
-public class MapManager {
-    private View viewm;
+public class Map {
+
+    public Map(final Activity act){
+        activity = act;
+    }
+
+    Activity activity;
     private GoogleMap mMap;
-    private Activity myContext;
-
-    public Activity getContext() {
-        return myContext;
-    }
-
-    public void setContext(Activity activity) {
-        this.myContext = activity;
-    }
-
-    public View getView() {
-        return viewm;
-    }
-
-    public void setView(View view) {
-        this.viewm = view;
-    }
-
-    public GoogleMap getmMap() {
-        return mMap;
-    }
-
-    public void setmMap(GoogleMap mMap) {
-        this.mMap = mMap;
-    }
-
-    public void onResume(){
-        setUpMapIfNeeded();
-    }
 
     /**
      * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
@@ -65,7 +47,7 @@ public class MapManager {
         // Do a null check to confirm that we have not already instantiated the map.
         if (mMap == null) {
             // Try to obtain the map from the SupportMapFragment.
-            mMap = ((MapFragment) myContext.getFragmentManager().findFragmentById(R.id.map))
+            mMap = ((MapFragment) activity.getFragmentManager().findFragmentById(R.id.map))
                     .getMap();
             mMap.setMyLocationEnabled(true);
             // Check if we were successful in obtaining the map.
@@ -89,5 +71,9 @@ public class MapManager {
         double lat = location.getLatitude();
         double lon = location.getLongitude();
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lon)).title("Marker"));
+    }
+
+    public void onCreate(){
+        setUpMapIfNeeded();
     }
 }

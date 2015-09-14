@@ -145,6 +145,7 @@ gradle-app.setting
 
 # Android Studio
 .gradle
+.idea
 /local.properties
 /.idea/workspace.xml
 /.idea/libraries

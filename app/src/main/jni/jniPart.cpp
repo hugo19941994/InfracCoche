@@ -3,8 +3,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 
 using namespace std;
@@ -17,26 +15,28 @@ CascadeClassifier eyes_cascade;
 String window_name = "Capture - Face detection";
 
 extern "C" {
-JNIEXPORT void JNICALL Java_com_example_uemcar_MainActivity_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
-JNIEXPORT void JNICALL Java_com_example_uemcar_MainActivity_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_MainActivity_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 {
-    Mat& mGr  = *(Mat*)addrGray;
-    Mat& mRgb = *(Mat*)addrRgba;
-    //imwrite("test", mGr);
-    vector<KeyPoint> v;
+	//https://es.wikipedia.org/wiki/Anexo:Se%C3%B1ales_de_limitaci%C3%B3n_de_velocidad_de_Espa%C3%B1a#
 
-    /*FastFeatureDetector detector(50, true, 1);
-    detector.detect(mGr, v);
+	Mat& mGr  = *(Mat*)addrGray;
+	Mat& mRgb = *(Mat*)addrRgba;
+	vector<KeyPoint> v;
+
+	Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
+	detector->detect(mGr, v);
     for( unsigned int i = 0; i < v.size(); i++ )
     {
-        const KeyPoint& kp = v[i];
-        circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
-    }*/
+		const KeyPoint& kp = v[i];
+		circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
+    }
+
 }
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_MainActivity_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 {
     Mat& mGr  = *(Mat*)addrGray;
     Mat& mRgb = *(Mat*)addrRgba;
