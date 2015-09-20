@@ -10,10 +10,13 @@
 package com.example.uemcar;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.WindowManager;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
+import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
@@ -47,11 +50,14 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
+        Bitmap image = BitmapFactory.decodeResource(activity.getResources(), R.drawable.cien);
+        Mat img = new Mat();
+        Utils.bitmapToMat(image, img);
         FindFeatures(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
         return mRgba;
     }
 
-    public native void FindFeatures(long matAddrGr, long matAddrRgba);
+    public native void FindFeatures(long img, long matAddrGr);
     public native void FindFace(long matAddrGr, long matAddrRgba);
 
     public void onDestroy(){

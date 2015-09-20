@@ -1,12 +1,16 @@
 #include <jni.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/features2d/features2d.hpp>
-#include <opencv2/objdetect/objdetect.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/xfeatures2d.hpp"
 #include <vector>
+#include <opencv2/objdetect.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 using namespace std;
 using namespace cv;
+using namespace cv::xfeatures2d;
 
 String face_cascade_name = "lbpcascade_frontalface.xml";
 String eyes_cascade_name = "haarcascade_eye_tree_eyeglasses.xml";
@@ -28,13 +32,19 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobj
 
 	Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
 	detector->detect(mGr, v);
-    for( unsigned int i = 0; i < v.size(); i++ )
-    {
-		const KeyPoint& kp = v[i];
-		circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
-    }
+
+	//ONLY FOR TESTING
+    cv::Mat img;
+    //if (!img.data)
+     //   exit(0);
+	int minHessian = 400;
+	const Ptr<SURF> &surf = SURF::create(minHessian);
+	std::vector<KeyPoint> keypoints;
+	surf->detect(img, keypoints);
 
 }
+
+
 
 JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 {
@@ -42,7 +52,6 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject,
     Mat& mRgb = *(Mat*)addrRgba;
 
     circle(mRgb, Point(500, 500), 10, Scalar(255,0,0,255));
-
 
     /*std::vector<Rect> faces;
 	Mat frame_gray;

@@ -13,7 +13,7 @@ Aplicación para Android que detecta infracciones de tráfico gracias a la visi�
   * Incluir __SDK Manager__ si no se ha instalado con aterioridad
   * Incluir __AVD Manager__ si se desea ejecutar la aplicación virtualizada
 3. Instalar __Android NDK__ y __Google Play Library__ (_Configure/SDK Manager/Extras/Ndk Bundle_ & _Google Play Service_)
-4. Copiar adbkey a __Usuario/.android__
+4. Copiar keys/ a __Usuario/.android__
 4. Importar Proyecto
 5. Si hay problemas al compilar limpiar el entorno de trabajo (_Build/Clean Project_)
 
