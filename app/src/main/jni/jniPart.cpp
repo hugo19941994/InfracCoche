@@ -7,6 +7,8 @@
 #include <vector>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <android/log.h>
 
 using namespace std;
 using namespace cv;
@@ -19,32 +21,88 @@ CascadeClassifier eyes_cascade;
 String window_name = "Capture - Face detection";
 
 extern "C" {
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba, jlong addrImg);
 JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba, jlong addrImg)
 {
 	//https://es.wikipedia.org/wiki/Anexo:Se%C3%B1ales_de_limitaci%C3%B3n_de_velocidad_de_Espa%C3%B1a#
 
 	Mat& mGr  = *(Mat*)addrGray;
 	Mat& mRgb = *(Mat*)addrRgba;
+	Mat& mImg = *(Mat*)addrImg;
+    Mat mImgG;
+    cvtColor(mImg, mImgG, COLOR_BGR2GRAY);
 	vector<KeyPoint> v;
 
-	Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
-	detector->detect(mGr, v);
+	//Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
+	//detector->detect(mGr, v);
 
 	//ONLY FOR TESTING
-    cv::Mat img;
-    //if (!img.data)
-     //   exit(0);
+	//-- Step 1: Detect the keypoints using SURF Detector
+    if (!mImgG.data)
+        exit(0);
 	int minHessian = 400;
 	const Ptr<SURF> &surf = SURF::create(minHessian);
-	std::vector<KeyPoint> keypoints;
-	surf->detect(img, keypoints);
+    std::vector<KeyPoint> keypoints1;
+    std::vector<KeyPoint> keypoints2;
+    //surf->detect(mGr, keypoints1);
+    surf->detect(mGr, keypoints1);
+    surf->detect(mImgG, keypoints2);
 
+	//-- Step 2: Calculate descriptors (feature vectors)
+	//  SurfDescriptorExtractor extractor;
+	Mat descriptors1, descriptors2;
+    surf->compute(mGr, keypoints1, descriptors1);
+    surf->compute(mImgG, keypoints2, descriptors2);
+
+	//-- Step 3: Matching descriptor vectors using FLANN matcher
+	FlannBasedMatcher matcher;
+	std::vector< DMatch > matches;
+	matcher.match(descriptors1, descriptors2, matches);
+	double max_dist = 0; double min_dist = 100;
+
+	//-- Quick calculation of max and min distances between keypoints
+	for( int i = 0; i < descriptors1.rows; i++ )
+	{ double dist = matches[i].distance;
+		if( dist < min_dist ) min_dist = dist;
+		if( dist > max_dist ) max_dist = dist;
+	}
+
+	printf("-- Max dist : %f \n", max_dist );
+	printf("-- Min dist : %f \n", min_dist );
+
+	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+	//-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+	//-- small)
+	//-- PS.- radiusMatch can also be used here.
+
+	std::vector< DMatch > good_matches;
+	for( int i = 0; i < descriptors1.rows; i++ )
+	{ if( matches[i].distance <= max(2*min_dist, 0.02) )
+		{ good_matches.push_back( matches[i]); }
+	}
+
+	//-- Draw only "good" matches
+	Mat img_matches;
+	drawMatches( mGr, keypoints1, mImgG, keypoints2,
+				 good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
+				 vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+
+	//-- Show detected matches
+	//imshow( "Good Matches", img_matches );
+
+	for( int i = 0; i < (int)good_matches.size(); i++ )
+	{ __android_log_print( ANDROID_LOG_DEBUG, "LOG_TAG","-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx ); }
+
+    for( unsigned int i = 0; i < good_matches.size(); i++ )
+    {
+        KeyPoint &kp = keypoints1[good_matches[i].queryIdx];
+        circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
+    }
+
+	//waitKey(0);
 }
-
-
 
 JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 {

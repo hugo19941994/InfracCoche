@@ -53,11 +53,11 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
         Bitmap image = BitmapFactory.decodeResource(activity.getResources(), R.drawable.cien);
         Mat img = new Mat();
         Utils.bitmapToMat(image, img);
-        FindFeatures(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+        FindFeatures(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr(), img.getNativeObjAddr());
         return mRgba;
     }
 
-    public native void FindFeatures(long img, long matAddrGr);
+    public native void FindFeatures(long img, long matAddrGr, long image);
     public native void FindFace(long matAddrGr, long matAddrRgba);
 
     public void onDestroy(){
@@ -72,6 +72,7 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     public void onResume(){
         mOpenCvCameraView.enableView();
+
     }
 
     public void onCreate(){
