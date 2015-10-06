@@ -1,149 +1,137 @@
+/**
+ * UEM 2015 - Sistema de Detección, Alerta y Registro de Infracciones de Tráfico
+ * Nourdine Aliane
+ * Mario Mata
+ * Hugo Ferrando Seage
+ * Rafael
+ * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
+ */
+
 #include <jni.h>
+#include <vector>
+#include "android/log.h"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/xfeatures2d.hpp"
-#include <vector>
-#include <opencv2/objdetect.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
-#include <android/log.h>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
 
-String face_cascade_name = "lbpcascade_frontalface.xml";
-String eyes_cascade_name = "haarcascade_eye_tree_eyeglasses.xml";
-CascadeClassifier face_cascade;
-CascadeClassifier eyes_cascade;
-String window_name = "Capture - Face detection";
+// Parameters for 100 km/h
+std::vector<KeyPoint> cienKeypoints;
+Mat cienDescriptors;
 
 extern "C" {
 JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba, jlong addrImg);
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
+void SURF_detect(std::vector<cv::Mat> &images, cv::Mat &cienGrey, cv::Mat& mRgb, std::vector<cv::Vec3f>& circles);
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba, jlong addrImg)
-{
-	//https://es.wikipedia.org/wiki/Anexo:Se%C3%B1ales_de_limitaci%C3%B3n_de_velocidad_de_Espa%C3%B1a#
+JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv* env, jobject, jlong addrGray, jlong addrRgba, jlong addrImg)  {
+	// Camera frames
+	Mat& mGr  = *(Mat*)addrGray; //Grey camera frame
+	Mat& mRgb = *(Mat*)addrRgba; //RGB camera frame
+	Mat mHLS;
+	cvtColor(mRgb, mHLS, COLOR_RGB2HLS); //HLS camera frame
 
-	Mat& mGr  = *(Mat*)addrGray;
-	Mat& mRgb = *(Mat*)addrRgba;
-	Mat& mImg = *(Mat*)addrImg;
+	// 100 km/h image
+	Mat& mImg = *(Mat*)addrImg; //100 km/h image
     Mat mImgG;
-    cvtColor(mImg, mImgG, COLOR_BGR2GRAY);
-	vector<KeyPoint> v;
+	cvtColor(mImg, mImgG, COLOR_BGR2GRAY); //Grey 100 km/h image
 
-	//Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
-	//detector->detect(mGr, v);
+	// Select red regions
+	cv::Mat lower_red_hue_range;
+	cv::Mat upper_red_hue_range;
+	cv::inRange(mHLS, cv::Scalar(0, 100, 100), cv::Scalar(10, 255, 255), lower_red_hue_range);
+	cv::inRange(mHLS, cv::Scalar(160, 100, 100), cv::Scalar(179, 255, 255), upper_red_hue_range);
 
-	//ONLY FOR TESTING
-	//-- Step 1: Detect the keypoints using SURF Detector
-    if (!mImgG.data)
-        exit(0);
+	// Add blur
+	cv::Mat red_hue_image;
+	cv::addWeighted(lower_red_hue_range, 1.0, upper_red_hue_range, 1.0, 0.0, red_hue_image);
+	cv::GaussianBlur(red_hue_image, red_hue_image, cv::Size(9, 9), 2, 2);
+
+	// Get circles with Hough
+	std::vector<cv::Vec3f> circles;
+	cv::HoughCircles(red_hue_image, circles, CV_HOUGH_GRADIENT, 1, red_hue_image.rows/8, 100, 20, 20, 700);
+	std::vector<cv::Mat> images(circles.size()); // Regions of interest
+
+	for(size_t current_circle = 0; current_circle < circles.size(); ++current_circle) {
+		cv::Point center(cvRound(circles[current_circle][0]), cvRound(circles[current_circle][1]));
+		int radius = cvRound(circles[current_circle][2]);
+
+		if (center.x - radius >= 0 && center.y - radius >=0 && center.x + radius < mGr.cols && center.y + radius < mGr.rows)
+			images[current_circle] = cv::Mat(mGr, cv::Rect(center.x - radius, center.y - radius, radius * 2, radius * 2));
+	}
+
+    if(images.size() > 0)
+        SURF_detect(images, mImgG, mRgb, circles);
+}
+
+void fill_cien_parameters(cv::Mat &cienGrey) {
 	int minHessian = 400;
 	const Ptr<SURF> &surf = SURF::create(minHessian);
-    std::vector<KeyPoint> keypoints1;
-    std::vector<KeyPoint> keypoints2;
-    //surf->detect(mGr, keypoints1);
-    surf->detect(mGr, keypoints1);
-    surf->detect(mImgG, keypoints2);
 
-	//-- Step 2: Calculate descriptors (feature vectors)
-	//  SurfDescriptorExtractor extractor;
-	Mat descriptors1, descriptors2;
-    surf->compute(mGr, keypoints1, descriptors1);
-    surf->compute(mImgG, keypoints2, descriptors2);
-
-	//-- Step 3: Matching descriptor vectors using FLANN matcher
-	FlannBasedMatcher matcher;
-	std::vector< DMatch > matches;
-	matcher.match(descriptors1, descriptors2, matches);
-	double max_dist = 0; double min_dist = 100;
-
-	//-- Quick calculation of max and min distances between keypoints
-	for( int i = 0; i < descriptors1.rows; i++ )
-	{ double dist = matches[i].distance;
-		if( dist < min_dist ) min_dist = dist;
-		if( dist > max_dist ) max_dist = dist;
-	}
-
-	printf("-- Max dist : %f \n", max_dist );
-	printf("-- Min dist : %f \n", min_dist );
-
-	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
-	//-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
-	//-- small)
-	//-- PS.- radiusMatch can also be used here.
-
-	std::vector< DMatch > good_matches;
-	for( int i = 0; i < descriptors1.rows; i++ )
-	{ if( matches[i].distance <= max(2*min_dist, 0.02) )
-		{ good_matches.push_back( matches[i]); }
-	}
-
-	//-- Draw only "good" matches
-	Mat img_matches;
-	drawMatches( mGr, keypoints1, mImgG, keypoints2,
-				 good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
-				 vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
-	//-- Show detected matches
-	//imshow( "Good Matches", img_matches );
-
-	for( int i = 0; i < (int)good_matches.size(); i++ )
-	{ __android_log_print( ANDROID_LOG_DEBUG, "LOG_TAG","-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx ); }
-
-    for( unsigned int i = 0; i < good_matches.size(); i++ )
-    {
-        KeyPoint &kp = keypoints1[good_matches[i].queryIdx];
-        circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
-    }
-
-	//waitKey(0);
+	surf->detect(cienGrey, cienKeypoints);
+	surf->compute(cienGrey, cienKeypoints, cienDescriptors);
 }
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFace(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
-{
-    Mat& mGr  = *(Mat*)addrGray;
-    Mat& mRgb = *(Mat*)addrRgba;
+void SURF_detect(vector<Mat>& images, cv::Mat& cienGrey, cv::Mat& mRgb, std::vector<cv::Vec3f>& circles) {
+	if(cienDescriptors.size == 0 || cienKeypoints.size() == 0)
+		fill_cien_parameters(cienGrey);
 
-    circle(mRgb, Point(500, 500), 10, Scalar(255,0,0,255));
+	for(unsigned int i = 0; i < images.size(); ++i) {
+        //-- Step 1: Extract frame keypoints
+		int minHessian = 400;
+		const Ptr<SURF> &surf = SURF::create(minHessian);
+		std::vector<KeyPoint> frameKeypoints;
+		surf->detect(images.at(i), frameKeypoints);
 
-    /*std::vector<Rect> faces;
-	Mat frame_gray;
+		//-- Step 2: Calculate descriptors (feature vectors)
+		Mat frameDescriptors;
+		surf->compute(images.at(i), frameKeypoints, frameDescriptors);
 
-	cvtColor( mRgb, mGr, COLOR_BGR2GRAY );
-	equalizeHist( frame_gray, frame_gray );
+		//-- Step 3: Matching descriptor vectors using FLANN matcher
+		FlannBasedMatcher matcher;
+		std::vector< DMatch > matches;
+        if(frameDescriptors.empty() || frameKeypoints.empty())
+            continue; // Skip iteration if there are no descriptors/keypoints
+        matcher.match(cienDescriptors, frameDescriptors, matches);
+		double max_dist = 0; double min_dist = 100;
 
-	-- Detect faces
-	face_cascade.detectMultiScale( mGr, faces, 1.1, 2, 0, Size(80, 80) );
-
-	for( size_t i = 0; i < faces.size(); i++ )
-	{
-		Mat faceROI = frame_gray( faces[i] );
-		std::vector<Rect> eyes;
-
-		//-- In each face, detect eyes
-		eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CASCADE_SCALE_IMAGE, Size(30, 30) );
-		if( eyes.size() == 2)
-		{
-			//-- Draw the face
-			Point center( faces[i].x + faces[i].width/2, faces[i].y + faces[i].height/2 );
-			ellipse( mRgb, center, Size( faces[i].width/2, faces[i].height/2 ), 0, 0, 360, Scalar( 255, 0, 0 ), 2, 8, 0 );
-
-			for( size_t j = 0; j < eyes.size(); j++ )
-			{ //-- Draw the eyes
-				Point eye_center( faces[i].x + eyes[j].x + eyes[j].width/2, faces[i].y + eyes[j].y + eyes[j].height/2 );
-				int radius = cvRound( (eyes[j].width + eyes[j].height)*0.25 );
-				circle( mRgb, eye_center, radius, Scalar( 255, 0, 255 ), 3, 8, 0 );
-			}
+		//-- Quick calculation of max and min distances between keypoints
+		for (int j = 0; j < frameDescriptors.rows; j++) {
+			double dist = matches[j].distance;
+			if( dist < min_dist ) min_dist = dist;
+			if( dist > max_dist ) max_dist = dist;
 		}
 
+		printf("-- Max dist : %f \n", max_dist );
+		printf("-- Min dist : %f \n", min_dist );
+
+		//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+		//-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+		//-- small)
+		//-- PS.- radiusMatch can also be used here.
+
+		std::vector< DMatch > good_matches;
+		for (int j = 0; j < frameDescriptors.rows; j++) {
+            if (matches[j].distance <= max(2*min_dist, 0.02))
+			    good_matches.push_back( matches[j]);
+		}
+
+		for (int j = 0; j < (int)good_matches.size(); j++)
+            __android_log_print( ANDROID_LOG_DEBUG, "LOG_TAG","-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", j, good_matches[j].queryIdx, good_matches[j].trainIdx );
+
+        if (good_matches.size() > 10) {
+            cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+            int radius = cvRound(circles[i][2]);
+
+            circle(mRgb, Point(center.x, center.y), radius, Scalar(0, 255, 0, 255), 3);
         }
-        //-- Show what you got
-        //imshow( window_name, frame );
-         */
+	}
 }
+
 }

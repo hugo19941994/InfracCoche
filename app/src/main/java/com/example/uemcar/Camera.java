@@ -58,7 +58,6 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
     }
 
     public native void FindFeatures(long img, long matAddrGr, long image);
-    public native void FindFace(long matAddrGr, long matAddrRgba);
 
     public void onDestroy(){
         if (mOpenCvCameraView != null)
