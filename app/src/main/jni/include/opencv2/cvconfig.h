@@ -57,6 +57,7 @@
 
 /* DirectX */
 /* #undef HAVE_DIRECTX */
+/* #undef HAVE_DIRECTX_NV12 */
 /* #undef HAVE_D3D11 */
 /* #undef HAVE_D3D10 */
 /* #undef HAVE_D3D9 */
@@ -120,9 +121,9 @@
 /* #undef HAVE_NVCUVID */
 
 /* OpenCL Support */
-/* #undef HAVE_OPENCL */
+#define HAVE_OPENCL
 /* #undef HAVE_OPENCL_STATIC */
-/* #undef HAVE_OPENCL_SVM */
+#define HAVE_OPENCL_SVM
 
 /* OpenEXR codec */
 #define HAVE_OPENEXR
@@ -139,6 +140,12 @@
 /* PNG codec */
 #define HAVE_PNG
 
+/* Posix threads (pthreads) */
+#define HAVE_PTHREADS
+
+/* parallel_for with pthreads */
+#define HAVE_PTHREADS_PF
+
 /* Qt support */
 /* #undef HAVE_QT */
 
@@ -152,7 +159,7 @@
 /* #undef HAVE_QTKIT */
 
 /* Intel Threading Building Blocks */
-#define HAVE_TBB
+/* #undef HAVE_TBB */
 
 /* TIFF codec */
 #define HAVE_TIFF
@@ -181,3 +188,9 @@
 
 /* gPhoto2 library */
 /* #undef HAVE_GPHOTO2 */
+
+/* VA library (libva) */
+/* #undef HAVE_VA */
+
+/* Intel VA-API/OpenCL */
+/* #undef HAVE_VA_INTEL */

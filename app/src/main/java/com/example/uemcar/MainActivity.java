@@ -10,6 +10,7 @@
 package com.example.uemcar;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
 import android.view.LayoutInflater;
@@ -21,6 +22,7 @@ import android.widget.ListView;
 
 public class MainActivity extends Activity {
 
+    //public static MyGLSurfaceView mView;
     public GPS gps = new GPS(this);
     public Map map = new Map(this);
     public Camera camera = new Camera(this);
@@ -39,11 +41,14 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.drawer);
 
-        mPlanetTitles = new String[4];
-        mPlanetTitles[0] = "RGB";
-        mPlanetTitles[1] = "Grey";
-        mPlanetTitles[2] = "HLS";
-        mPlanetTitles[3] = "Contours";
+        mPlanetTitles = new String[7];
+        mPlanetTitles[0] = "Results";
+        mPlanetTitles[1] = "RGBA";
+        mPlanetTitles[2] = "Grey";
+        mPlanetTitles[3] = "HLS";
+        mPlanetTitles[4] = "Red Hue";
+        mPlanetTitles[5] = "Contours"; // Añadir contours filtered y contours with circles
+        mPlanetTitles[6] = "100"; // Añadir contours filtered y contours with circles
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
@@ -69,6 +74,9 @@ public class MainActivity extends Activity {
 
         map.onCreate();
         gps.onCreate();
+
+        //mView = (MyGLSurfaceView) findViewById(R.id.my_gl_surface_view);
+        //mView.setCameraTextureListener(mView);
         camera.onCreate();
     }
 
@@ -77,11 +85,14 @@ public class MainActivity extends Activity {
         super.onResume();
         map.setUpMapIfNeeded();
         camera.onResume();
+        //mView.onResume();
+
     }
     
     @Override
     public void onPause() {
         super.onPause();
+        //mView.onPause();
         camera.onPause();
     }
 
@@ -90,6 +101,7 @@ public class MainActivity extends Activity {
         super.onDestroy();
         camera.onDestroy();
         gps.removeCallback();
+
     }
 
     private class DrawerItemClickListener implements ListView.OnItemClickListener {

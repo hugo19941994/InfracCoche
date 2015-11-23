@@ -22,10 +22,9 @@
         android:layout_weight="1">
 
         <org.opencv.android.JavaCameraView
-            android:layout_width="match_parent"
+            android:layout_width="198dp"
             android:layout_height="match_parent"
-            android:id="@+id/cameraView"
-            android:layout_weight="1"/>
+            android:id="@+id/cameraView" />
 
         <Button android:layout_width="match_parent"
             android:layout_height="match_parent"

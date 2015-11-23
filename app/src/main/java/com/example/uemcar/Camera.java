@@ -19,14 +19,15 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+
+import static android.os.Environment.getExternalStorageDirectory;
 
 public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private Mat                    mRgba;
-    private Mat                    mIntermediateMat;
-    private Mat                    mGray;
-    private Mat                    mHLS;
-    private Mat                    mContours;
+    private Mat                    img;
     private CameraBridgeViewBase   mOpenCvCameraView;
     public int cameraMode;
     Activity activity;
@@ -37,43 +38,33 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+
         mRgba = new Mat(height, width, CvType.CV_8UC4);
-        mIntermediateMat = new Mat(height, width, CvType.CV_8UC4);
-        mGray = new Mat(height, width, CvType.CV_8UC1);
-        mHLS = new Mat(height, width, CvType.CV_8UC1);
-        mContours = new Mat(height, width, CvType.CV_8UC1);
+        //Bitmap image = BitmapFactory.decodeResource(activity.getResources(), R.drawable.inside100);
+        //img = new Mat();
+        //Utils.bitmapToMat(image, img);
+        //Size sz = new Size(480,320);
+        //Imgproc.resize(img, img, sz);
     }
 
     @Override
     public void onCameraViewStopped() {
         mRgba.release();
-        mGray.release();
-        mIntermediateMat.release();
+        //mGray.release();
     }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
-        mGray = inputFrame.gray();
-        Bitmap image = BitmapFactory.decodeResource(activity.getResources(), R.drawable.cien);
-        Mat img = new Mat();
-        Utils.bitmapToMat(image, img);
-        FindFeatures(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr(), img.getNativeObjAddr(), mHLS.getNativeObjAddr(), mContours.getNativeObjAddr());
-        switch (cameraMode) {
-            case (0):
-                return mRgba;
-            case(1):
-                return mGray;
-            case(2):
-                return mHLS;
-            case(3):
-                return mContours;
-            default:
-                return mRgba;
-        }
-    }
+        //mGray = inputFrame.gray();
 
-    public native void FindFeatures(long img, long matAddrGr, long image, long HLS, long Contours);
+
+        //FindFeatures(mRgba.getNativeObjAddr(), img.getNativeObjAddr(), cameraMode);
+        FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
+        return mRgba;
+    }
+    //public native void initCL();
+    public native void FindFeatures(long frame, int mode);
 
     public void onDestroy(){
         if (mOpenCvCameraView != null)
@@ -91,6 +82,7 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
     }
 
     public void onCreate(){
+        //initCL();
         activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         mOpenCvCameraView = (JavaCameraView) activity.findViewById(R.id.cameraView);
         mOpenCvCameraView.setCvCameraViewListener(this);

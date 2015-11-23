@@ -1369,6 +1369,28 @@ CV_EXPORTS_W void Sobel( InputArray src, OutputArray dst, int ddepth,
                          double scale = 1, double delta = 0,
                          int borderType = BORDER_DEFAULT );
 
+/** @brief Calculates the first order image derivative in both x and y using a Sobel operator
+
+Equivalent to calling:
+
+@code
+Sobel( src, dx, CV_16SC1, 1, 0, 3 );
+Sobel( src, dy, CV_16SC1, 0, 1, 3 );
+@endcode
+
+@param src input image.
+@param dx output image with first-order derivative in x.
+@param dy output image with first-order derivative in y.
+@param ksize size of Sobel kernel. It must be 3.
+@param borderType pixel extrapolation method, see cv::BorderTypes
+
+@sa Sobel
+ */
+
+CV_EXPORTS_W void spatialGradient( InputArray src, OutputArray dx,
+                                   OutputArray dy, int ksize = 3,
+                                   int borderType = BORDER_DEFAULT );
+
 /** @brief Calculates the first x- or y- image derivative using Scharr operator.
 
 The function computes the first x- or y- spatial image derivative using the Scharr operator. The
@@ -1689,6 +1711,7 @@ See the line detection example below:
     #include <opencv2/highgui.hpp>
 
     using namespace cv;
+    using namespace std;
 
     int main(int argc, char** argv)
     {
@@ -1774,18 +1797,19 @@ Example: :
     #include <math.h>
 
     using namespace cv;
+    using namespace std;
 
     int main(int argc, char** argv)
     {
         Mat img, gray;
-        if( argc != 2 && !(img=imread(argv[1], 1)).data)
+        if( argc != 2 || !(img=imread(argv[1], 1)).data)
             return -1;
         cvtColor(img, gray, COLOR_BGR2GRAY);
         // smooth it, otherwise a lot of false circles may be detected
         GaussianBlur( gray, gray, Size(9, 9), 2, 2 );
         vector<Vec3f> circles;
         HoughCircles(gray, circles, HOUGH_GRADIENT,
-                     2, gray->rows/4, 200, 100 );
+                     2, gray.rows/4, 200, 100 );
         for( size_t i = 0; i < circles.size(); i++ )
         {
              Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -1797,6 +1821,8 @@ Example: :
         }
         namedWindow( "circles", 1 );
         imshow( "circles", img );
+
+        waitKey(0);
         return 0;
     }
 @endcode
@@ -1942,8 +1968,8 @@ way:
     // specify fx and fy and let the function compute the destination image size.
     resize(src, dst, Size(), 0.5, 0.5, interpolation);
 @endcode
-To shrink an image, it will generally look best with CV_INTER_AREA interpolation, whereas to
-enlarge an image, it will generally look best with CV_INTER_CUBIC (slow) or CV_INTER_LINEAR
+To shrink an image, it will generally look best with cv::INTER_AREA interpolation, whereas to
+enlarge an image, it will generally look best with cv::INTER_CUBIC (slow) or cv::INTER_LINEAR
 (faster but still looks OK).
 
 @param src input image.
@@ -3378,8 +3404,9 @@ CV_EXPORTS_W int connectedComponents(InputArray image, OutputArray labels,
 @param labels destination labeled image
 @param stats statistics output for each label, including the background label, see below for
 available statistics. Statistics are accessed via stats(label, COLUMN) where COLUMN is one of
-cv::ConnectedComponentsTypes
-@param centroids floating point centroid (x,y) output for each label, including the background label
+cv::ConnectedComponentsTypes. The data type is CV_32S.
+@param centroids centroid output for each label, including the background label. Centroids are
+accessed via centroids(label, 0) for x and centroids(label, 1) for y. The data type CV_64F.
 @param connectivity 8 or 4 for 8-way or 4-way connectivity respectively
 @param ltype output image label type. Currently CV_32S and CV_16U are supported.
 */
@@ -3742,7 +3769,7 @@ enum ColormapTypes
     COLORMAP_HSV = 9, //!< ![HSV](pics/colormaps/colorscale_hsv.jpg)
     COLORMAP_PINK = 10, //!< ![pink](pics/colormaps/colorscale_pink.jpg)
     COLORMAP_HOT = 11, //!< ![hot](pics/colormaps/colorscale_hot.jpg)
-    COLORMAP_PARULA = 12 //!< ![hot](pics/colormaps/colorscale_parula.jpg)
+    COLORMAP_PARULA = 12 //!< ![parula](pics/colormaps/colorscale_parula.jpg)
 };
 
 /** @brief Applies a GNU Octave/MATLAB equivalent colormap on a given image.
