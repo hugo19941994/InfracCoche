@@ -3,7 +3,6 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Rafael Mesa Hernández
  * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
  */
 
@@ -49,11 +48,9 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     // Gyro
     private SensorManager mSensorManager;
     private Sensor mSensor;
-    // Create a constant to convert nanoseconds to seconds.
-    private static final float NS2S = 1.0f / 1000000000.0f;
-    private final float[] deltaRotationVector = new float[4];
-    private float timestamp;
-    private int rotX, rotY, rotZ;
+    float azimut;
+    float[] orientation = new float[3];
+    float[] rMat = new float[9];
 
     public final void onCreate(){
         buildGoogleApiClient();
@@ -74,7 +71,7 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
         // Gyro
         mSensorManager = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
-        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
         mSensorManager.registerListener(mListener, mSensor,
                 SensorManager.SENSOR_DELAY_NORMAL);
@@ -86,7 +83,7 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
             Float speed = ((mLastLocation.getSpeed()*3600)/1000);
             if (speed > 120)
                 ((MainActivity) activity).map.putMarker(mLastLocation); //Tightly coupled
-            button.setText("Speed: " + Float.toString(speed) + "\nX Rot: " + rotX + "\nY Rot: " + rotY + "\nZ Rot: " + rotZ);
+            button.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + Float.toString(azimut));
             if(started) {
                 start();
             }
@@ -101,52 +98,9 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     private final SensorEventListener mListener = new SensorEventListener() {
         // Gyro
         public void onSensorChanged(SensorEvent event) {
-            // This timestep's delta rotation to be multiplied by the current rotation
-            // after computing it from the gyro sample data.
-            if (timestamp != 0) {
-                final float dT = (event.timestamp - timestamp) * NS2S;
-                // Axis of the rotation sample, not normalized yet.
-                float axisX = event.values[0];
-                float axisY = event.values[1];
-                float axisZ = event.values[2];
-                rotX = (int)axisX;
-                rotY = (int)axisY;
-                rotZ = (int)axisZ;
-                //Log.d("axisX", Float.toString(axisX));
-                //Log.d("axisY", Float.toString(axisY));
-                //Log.d("axisZ", Float.toString(axisZ));
-                /*
-                // Calculate the angular speed of the sample
-                float omegaMagnitude = (float) Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
-
-                // Normalize the rotation vector if it's big enough to get the axis
-                // (that is, EPSILON should represent your maximum allowable margin of error)
-                int EPSILON = 1;
-                if (omegaMagnitude > EPSILON) {
-                    axisX /= omegaMagnitude;
-                    axisY /= omegaMagnitude;
-                    axisZ /= omegaMagnitude;
-                }
-
-                // Integrate around this axis with the angular speed by the timestep
-                // in order to get a delta rotation from this sample over the timestep
-                // We will convert this axis-angle representation of the delta rotation
-                // into a quaternion before turning it into the rotation matrix.
-                float thetaOverTwo = omegaMagnitude * dT / 2.0f;
-                float sinThetaOverTwo = (float) Math.sin(thetaOverTwo);
-                float cosThetaOverTwo = (float) Math.cos(thetaOverTwo);
-                deltaRotationVector[0] = sinThetaOverTwo * axisX;
-                deltaRotationVector[1] = sinThetaOverTwo * axisY;
-                deltaRotationVector[2] = sinThetaOverTwo * axisZ;
-                deltaRotationVector[3] = cosThetaOverTwo;
-                */
-            }
-            timestamp = event.timestamp;
-            float[] deltaRotationMatrix = new float[9];
-            SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaRotationVector);
-            // User code should concatenate the delta rotation we computed with the current rotation
-            // in order to get the updated rotation.
-            // rotationCurrent = rotationCurrent * deltaRotationMatrix;
+            SensorManager.getRotationMatrixFromVector( rMat, event.values );
+            // get the azimuth value (orientation[0]) in degree
+            azimut = (float) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
         }
 
         @Override

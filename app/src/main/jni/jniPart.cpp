@@ -3,7 +3,6 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Rafael Mesa Hernández
  * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
  */
 

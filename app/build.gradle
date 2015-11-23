@@ -75,7 +75,10 @@ model {
 }
 
 dependencies {
-    compile 'com.google.android.gms:play-services:8.1.0'
-    compile 'com.android.support:appcompat-v7:23.0.1'
     compile project(':openCVLibrary300dev')
+    compile 'com.google.android.gms:play-services:8.3.0'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.google.android.gms:play-services-ads:8.3.0'
+    compile 'com.google.android.gms:play-services-auth:8.3.0'
+    compile 'com.google.android.gms:play-services-gcm:8.3.0'
 }
