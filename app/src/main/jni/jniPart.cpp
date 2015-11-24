@@ -9,6 +9,7 @@
 #include <jni.h>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
@@ -56,7 +57,7 @@ void fillLabel() {
 
 extern "C" {
 
-JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, jclass cls,
+JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, jclass cls,
                                                                    jlong frame, jint mode) {
 
     // Read stored sample and label for training
@@ -69,6 +70,20 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
         knn->setDefaultK(1);
 
         knn->train(trainingData); // Train with sample and responses
+    }
+
+    // Return an array with traffis signals
+    jintArray result;
+    result = (env)->NewIntArray(5);
+    if (result == NULL) {
+        return NULL; /* out of memory error thrown */
+    }
+    int i;
+    // fill a temp structure to use to populate the java int array
+    jint fill[256];
+    int numSe = 0;
+    for(int i = 0; i < 5; i++){
+        fill[i] = 1;
     }
 
     Mat &src = *(Mat *) frame; //RGB camera frame
@@ -140,12 +155,13 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
             Mat tmp1, tmp2, tmp3;
             resize(ROIg, tmp1, Size(50, 50), 0, 0, INTER_LINEAR);
             tmp1.convertTo(tmp2, CV_32FC1);
-            knn->findNearest(tmp2.reshape(1, 1), knn->getDefaultK(), tmp3);
+            int found = knn->findNearest(tmp2.reshape(1, 1), knn->getDefaultK(), tmp3);
             std::stringstream buffer;
             buffer << tmp3;
-            cout << tmp3 << " ";
             putText(src, buffer.str(), Point(r.x, r.y + r.height), 0, 1, Scalar(0, 255, 0), 2, 8);
             rectangle(src, r, Scalar(0, 0, 255));
+            fill[numSe] = found;
+            numSe++;
         }
     }
 
@@ -163,5 +179,9 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
             src = mRedHue;
             break;
     }
+
+    // move from the temp structure to the java structure
+    (env)->SetIntArrayRegion(result, 0, 5, fill);
+    return result;
 }
 }

@@ -45,8 +45,10 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
     private TextView t1, t2;
 
+    public int signs[] = new int[5];
+
     // Gyro
-    float azimut;
+    int azimut;
     float[] orientation = new float[3];
     float[] rMat = new float[9];
 
@@ -76,8 +78,21 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
             if (speed > 120)
                 ((MainActivity) activity).map.putMarker(mLastLocation); //Tightly coupled
 
-            t1.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + Float.toString(azimut));
-            t2.setText("Last traffic signals:");
+            String si = "";
+
+            if(signs[0] != 1)
+                si += signs[0] + "\n";
+            if(signs[1] != 1)
+                si += signs[1] + "\n";
+            if(signs[2] != 1)
+                si += signs[2] + "\n";
+            if(signs[3] != 1)
+                si += signs[3] + "\n";
+            if(signs[4] != 1)
+                si += signs[4] + "\n";
+
+            t1.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + azimut + "°");
+            t2.setText("Last traffic signals:" + si);
             if(started) {
                 start();
             }
@@ -86,7 +101,7 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
     public void start() {
         started = true;
-        handler.postDelayed(runnable, 100);
+        handler.postDelayed(runnable, 2000);
     }
 
     private final SensorEventListener mListener = new SensorEventListener() {
@@ -94,7 +109,7 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
         public void onSensorChanged(SensorEvent event) {
             SensorManager.getRotationMatrixFromVector( rMat, event.values );
             // get the azimuth value (orientation[0]) in degree
-            azimut = (float) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
+            azimut = (int) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
         }
 
         @Override
