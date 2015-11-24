@@ -24,6 +24,10 @@ using namespace cv;
 using namespace cv::xfeatures2d;
 using namespace cv::ml;
 
+Mat response, sample;
+Ptr<TrainData> trainingData;
+Ptr<KNearest> knn = KNearest::create();
+
 template <typename T>
 std::string to_string(T value)
 {
@@ -36,11 +40,40 @@ std::string to_string(T value)
     //convert the string stream into a string and return
     return os.str() ;
 }
+
+void fillTraining() {
+    FileStorage Data("/sdcard/trainingdata.yml", FileStorage::READ); // Read traing data to a Mat
+    Data["data"] >> sample;
+    Data.release();
+
+}
+
+void fillLabel() {
+    FileStorage Label("/sdcard/labeldata.yml", FileStorage::READ); // Read label data to a Mat
+    Label["label"] >> response;
+    Label.release();
+}
+
 extern "C" {
 
 JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, jclass cls,
                                                                    jlong frame, jint mode) {
+
+    // Read stored sample and label for training
+    if (sample.rows == 0 && response.rows == 0) {
+        fillLabel();
+        fillTraining();
+        trainingData = TrainData::create(sample, SampleTypes::ROW_SAMPLE, response);
+        knn->setIsClassifier(true);
+        knn->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
+        knn->setDefaultK(1);
+
+        knn->train(trainingData); // Train with sample and responses
+    }
+
     Mat &src = *(Mat *) frame; //RGB camera frame
+    Mat originalSrc;
+    src.copyTo(originalSrc);
 
     cv::Mat lab_image;
     cv::cvtColor(src, lab_image, CV_RGB2Lab); // Usar formato RGB, no BGR!!
@@ -66,9 +99,7 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
     cv::Mat lower_red_hue_range;
     cv::Mat upper_red_hue_range;
     cv::inRange(mHSV, cv::Scalar(0, 100, 100), cv::Scalar(10, 255, 255), lower_red_hue_range);
-    //cv::inRange(mHSV, cv::Scalar(0, 100, 100), cv::Scalar(10, 255, 255), lower_red_hue_range);
     cv::inRange(mHSV, cv::Scalar(160, 100, 100), cv::Scalar(179, 255, 255), upper_red_hue_range);
-    //cv::inRange(mHSV, cv::Scalar(160, 100, 100), cv::Scalar(179, 255, 255), upper_red_hue_range);
 
     // Add blur
     cv::addWeighted(lower_red_hue_range, 1.0, upper_red_hue_range, 1.0, 0.0, mRedHue);
@@ -76,40 +107,11 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
 
     // Extract Contours from binary image
     cv::Mat contourMat;
-    Mat sample;
     Mat response_array;
     std::vector<std::vector<cv::Point> > contours;
     vector< Vec4i > hierarchy;
-    //imshow("redbefore", mRedHue);
     Canny(mRedHue, mRedHue, 10, 25, 3);
     cv::findContours(mRedHue, contours, hierarchy, CV_RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, Point(0, 0));
-    //imshow("hls", mHSV);
-    //imshow("red", mRedHue);
-
-    // Read stored sample and label for training
-    Mat response, tmp;
-
-    FileStorage Data("/sdcard/trainingdata.yml", FileStorage::READ); // Read traing data to a Mat
-    Data["data"] >> sample;
-    Data.release();
-
-    FileStorage Label("/sdcard/labeldata.yml", FileStorage::READ); // Read label data to a Mat
-    Label["label"] >> response;
-    Label.release();
-
-
-    Ptr<TrainData> trainingData;
-    Ptr<KNearest> knn = KNearest::create();
-
-    trainingData = TrainData::create(sample,
-                                     SampleTypes::ROW_SAMPLE, response);
-
-    knn->setIsClassifier(true);
-    knn->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
-    knn->setDefaultK(1);
-
-    knn->train(trainingData); // Train with sample and responses
-    cout << "Training compleated.....!!" << endl;
 
     Mat dst(src.rows, src.cols, CV_8UC3, Scalar::all(0));
 
@@ -120,7 +122,7 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
         Rect r = boundingRect(contours[i]);
 
         Mat ROI = src(r);
-        if ((ROI.cols > 2* ROI.rows) && (ROI.rows > ROI.cols*2 ) && ROI.cols < 20 && ROI.rows < 20)
+        if ((ROI.cols > 2* ROI.rows) || (ROI.rows > ROI.cols*2 ) || ROI.cols < 20 || ROI.rows < 20)
             continue;
         Mat ROICanny = mRedHue(r);
 
@@ -130,15 +132,13 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
         cvtColor(ROI, ROIg, CV_RGB2GRAY); //HLS camera frame
 
         //threshold(ROIg, ROIg, 200, 255, 0);
-        //imshow("ROICanny" + std::to_string(i), ROIg);
-        cv::HoughCircles(ROICanny, circles, CV_HOUGH_GRADIENT, 2, ROIg.rows, 200, 100, 30, 400);
+        cv::HoughCircles(ROICanny, circles, CV_HOUGH_GRADIENT, 2, ROIg.rows/4, 200, 100);
         for (Vec3f c : circles) {
             circle(ROI, Point(c[0], c[1]), c[2], Scalar(0, 255, 0));
         }
         if (circles.size() != 0) {
             Mat tmp1, tmp2, tmp3;
             resize(ROIg, tmp1, Size(50, 50), 0, 0, INTER_LINEAR);
-            //imshow("tmp1" + i, tmp1);
             tmp1.convertTo(tmp2, CV_32FC1);
             knn->findNearest(tmp2.reshape(1, 1), knn->getDefaultK(), tmp3);
             std::stringstream buffer;
@@ -146,8 +146,22 @@ JNIEXPORT void JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, 
             cout << tmp3 << " ";
             putText(src, buffer.str(), Point(r.x, r.y + r.height), 0, 1, Scalar(0, 255, 0), 2, 8);
             rectangle(src, r, Scalar(0, 0, 255));
-
         }
+    }
+
+    // Switch viewing mode
+    switch(mode) {
+        case(0):
+            break;
+        case(1):
+            src = originalSrc;
+            break;
+        case(2):
+            src = originalSrc;
+            break;
+        case(3):
+            src = mRedHue;
+            break;
     }
 }
 }

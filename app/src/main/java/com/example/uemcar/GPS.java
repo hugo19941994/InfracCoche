@@ -17,10 +17,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.FloatMath;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -28,10 +25,14 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
 
 public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
-    public GPS(final  Activity act){
+    public GPS(final  Activity act) {
          activity = act;
     }
 
@@ -40,36 +41,27 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     public Location mLastLocation;
     private LocationRequest mLocationRequest;
     private boolean started = true;
-
     private Handler handler;
 
-    private Button button;
+    private TextView t1, t2;
 
     // Gyro
-    private SensorManager mSensorManager;
-    private Sensor mSensor;
     float azimut;
     float[] orientation = new float[3];
     float[] rMat = new float[9];
 
-    public final void onCreate(){
+    public final void onCreate() {
         buildGoogleApiClient();
         mGoogleApiClient.connect();
         createLocationRequest();
         handler = new Handler();
 
-        //start();
-
-        button = (Button) activity.findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Perform action on click
-                ((MainActivity) activity).map.putMarker(mLastLocation); //Tightly coupled
-                button.setText(Float.toString((mLastLocation.getSpeed() * 3600) / 1000));
-            }
-        });
+        t1 = (TextView) activity.findViewById(R.id.textView);
+        t2 = (TextView) activity.findViewById(R.id.textView2);
 
         // Gyro
+        SensorManager mSensorManager;
+        Sensor mSensor;
         mSensorManager = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
@@ -83,7 +75,9 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
             Float speed = ((mLastLocation.getSpeed()*3600)/1000);
             if (speed > 120)
                 ((MainActivity) activity).map.putMarker(mLastLocation); //Tightly coupled
-            button.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + Float.toString(azimut));
+
+            t1.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + Float.toString(azimut));
+            t2.setText("Last traffic signals:");
             if(started) {
                 start();
             }
@@ -123,8 +117,15 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     @Override
     public void onLocationChanged(Location location) {
         mLastLocation = location;
+
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(new LatLng(mLastLocation.getLatitude(),
+                        mLastLocation.getLongitude())).zoom(16.0f).build();
+        CameraUpdate cameraUpdate = CameraUpdateFactory
+                .newCameraPosition(cameraPosition);
+
+        ((MainActivity) activity).map.moveCamera(cameraUpdate);
         start();
-        //mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -137,8 +138,6 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        // Connected to Google Play services!
-        // The good stuff goes here.
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
         if (mLastLocation == null) {
@@ -149,17 +148,10 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
     @Override
     public void onConnectionSuspended(int cause) {
-        // The connection has been interrupted.
-        // Disable any UI components that depend on Google APIs
-        // until onConnected() is called.
     }
 
     @Override
     public void onConnectionFailed(ConnectionResult result) {
-        // This callback is important for handling errors that
-        // may occur while attempting to connect with Google.
-        //
-        // More about this in the 'Handle Connection Failures' section.
     }
 
     public void removeCallback() {

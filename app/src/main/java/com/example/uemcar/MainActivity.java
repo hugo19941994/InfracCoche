@@ -9,9 +9,7 @@
 package com.example.uemcar;
 
 import android.app.Activity;
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-import android.support.v4.widget.DrawerLayout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -21,14 +19,9 @@ import android.widget.ListView;
 
 public class MainActivity extends Activity {
 
-    //public static MyGLSurfaceView mView;
     public GPS gps = new GPS(this);
     public Map map = new Map(this);
     public Camera camera = new Camera(this);
-
-    private String[] mPlanetTitles;
-    private DrawerLayout mDrawerLayout;
-    private ListView mDrawerList;
 
     static {
     	System.loadLibrary("opencv_java3");
@@ -40,15 +33,17 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.drawer);
 
-        mPlanetTitles = new String[7];
-        mPlanetTitles[0] = "Results";
-        mPlanetTitles[1] = "RGBA";
-        mPlanetTitles[2] = "Grey";
-        mPlanetTitles[3] = "HLS";
-        mPlanetTitles[4] = "Red Hue";
-        mPlanetTitles[5] = "Contours"; // Añadir contours filtered y contours with circles
-        mPlanetTitles[6] = "100"; // Añadir contours filtered y contours with circles
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        // Drawer
+        String[] choices;
+        ListView mDrawerList;
+
+        choices = new String[6];
+        choices[0] = "Results";
+        choices[1] = "RGB";
+        choices[2] = "Grey";
+        choices[3] = "HLS";
+        choices[4] = "Red Hue";
+        choices[5] = "Contours"; // Añadir contours filtered y contours with circles
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
         LayoutInflater inflater = getLayoutInflater();
@@ -57,7 +52,7 @@ public class MainActivity extends Activity {
 
         // Set the adapter for the list view
         mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-                R.layout.drawer_list_item, mPlanetTitles));
+                R.layout.drawer_list_item, choices));
 
         // Set the list's click listener
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
@@ -74,8 +69,6 @@ public class MainActivity extends Activity {
         map.onCreate();
         gps.onCreate();
 
-        //mView = (MyGLSurfaceView) findViewById(R.id.my_gl_surface_view);
-        //mView.setCameraTextureListener(mView);
         camera.onCreate();
     }
 
@@ -84,14 +77,12 @@ public class MainActivity extends Activity {
         super.onResume();
         map.setUpMapIfNeeded();
         camera.onResume();
-        //mView.onResume();
 
     }
     
     @Override
     public void onPause() {
         super.onPause();
-        //mView.onPause();
         camera.onPause();
     }
 
