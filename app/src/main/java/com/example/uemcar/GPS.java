@@ -40,15 +40,11 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     private GoogleApiClient mGoogleApiClient;
     public Location mLastLocation;
     private LocationRequest mLocationRequest;
-    private boolean started = true;
-    private Handler handler;
-
-    private TextView t1, t2;
 
     public int signs[] = new int[5];
 
     // Gyro
-    int azimut;
+    int azimuth;
     float[] orientation = new float[3];
     float[] rMat = new float[9];
 
@@ -56,10 +52,6 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
         buildGoogleApiClient();
         mGoogleApiClient.connect();
         createLocationRequest();
-        handler = new Handler();
-
-        t1 = (TextView) activity.findViewById(R.id.textView);
-        t2 = (TextView) activity.findViewById(R.id.textView2);
 
         // Gyro
         SensorManager mSensorManager;
@@ -71,45 +63,12 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
                 SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            Float speed = ((mLastLocation.getSpeed()*3600)/1000);
-            if (speed > 120)
-                ((MainActivity) activity).map.putMarker(mLastLocation); //Tightly coupled
-
-            String si = "";
-
-            if(signs[0] != 1)
-                si += signs[0] + "\n";
-            if(signs[1] != 1)
-                si += signs[1] + "\n";
-            if(signs[2] != 1)
-                si += signs[2] + "\n";
-            if(signs[3] != 1)
-                si += signs[3] + "\n";
-            if(signs[4] != 1)
-                si += signs[4] + "\n";
-
-            t1.setText("Speed: " + Float.toString(speed) + "\nAzimut: " + azimut + "°");
-            t2.setText("Last traffic signals:" + si);
-            if(started) {
-                start();
-            }
-        }
-    };
-
-    public void start() {
-        started = true;
-        handler.postDelayed(runnable, 2000);
-    }
-
     private final SensorEventListener mListener = new SensorEventListener() {
         // Gyro
         public void onSensorChanged(SensorEvent event) {
             SensorManager.getRotationMatrixFromVector( rMat, event.values );
             // get the azimuth value (orientation[0]) in degree
-            azimut = (int) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
+            azimuth = (int) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
         }
 
         @Override
@@ -135,12 +94,12 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(mLastLocation.getLatitude(),
-                        mLastLocation.getLongitude())).zoom(16.0f).build();
+                        mLastLocation.getLongitude())).zoom(16.0f)
+                .bearing((float)azimuth).build();
         CameraUpdate cameraUpdate = CameraUpdateFactory
                 .newCameraPosition(cameraPosition);
 
         ((MainActivity) activity).map.moveCamera(cameraUpdate);
-        start();
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -155,9 +114,8 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     public void onConnected(Bundle connectionHint) {
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
-        if (mLastLocation == null) {
+        if (mLastLocation == null)
             Toast.makeText(activity, "No location detected", Toast.LENGTH_LONG).show();
-        }
         startLocationUpdates();
     }
 
@@ -170,7 +128,6 @@ public class GPS implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient
     }
 
     public void removeCallback() {
-        handler.removeCallbacks(runnable);
     }
 
 }

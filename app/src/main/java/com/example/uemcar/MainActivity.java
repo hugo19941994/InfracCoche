@@ -22,6 +22,7 @@ public class MainActivity extends Activity {
     public GPS gps = new GPS(this);
     public Map map = new Map(this);
     public Camera camera = new Camera(this);
+    public Infraccion infraccion = new Infraccion(this);
 
     static {
     	System.loadLibrary("opencv_java3");
@@ -68,8 +69,8 @@ public class MainActivity extends Activity {
 
         map.onCreate();
         gps.onCreate();
-
         camera.onCreate();
+        infraccion.setUp();
     }
 
     @Override
@@ -91,7 +92,7 @@ public class MainActivity extends Activity {
         super.onDestroy();
         camera.onDestroy();
         gps.removeCallback();
-
+        infraccion.removeCallback();
     }
 
     private class DrawerItemClickListener implements ListView.OnItemClickListener {

@@ -44,7 +44,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
                 android:id="@+id/textView"
                 android:layout_weight="1" />
 
@@ -52,7 +51,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
                 android:id="@+id/textView2"
                 android:layout_weight="1" />
         </LinearLayout>

@@ -9,7 +9,6 @@
 package com.example.uemcar;
 
 import android.app.Activity;
-import android.util.Log;
 import android.view.WindowManager;
 
 import org.opencv.android.CameraBridgeViewBase;
@@ -43,15 +42,11 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
         //mGray = inputFrame.gray();
-        int b[] = new int[5];
-        b = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
-        Log.w("array", Integer.toString(b[0]));
-        Log.w("array", Integer.toString(b[1]));
-        Log.w("array", Integer.toString(b[2]));
-        Log.w("array", Integer.toString(b[3]));
-        Log.w("array", Integer.toString(b[4]));
-        ((MainActivity) activity).gps.signs = b;
-        return mRgba;
+        //int senales[];
+        // Pasar a GPS las señales encontradas
+        ((MainActivity) activity).infraccion.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
+        ((MainActivity) activity).gps.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
+        return mRgba;  // Frame de camera en formato seleccionado
     }
 
     public native int[] FindFeatures(long frame, int mode);
