@@ -45,9 +45,14 @@ public class Map {
     }
 
     public void putMarker(Location location){
+
         double lat = location.getLatitude();
         double lon = location.getLongitude();
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lon)).title("Marker"));
+    }
+
+    public void putMarkerHere(){
+        putMarker(((MainActivity) activity).gps.mLastLocation);
     }
 
     public void onCreate(){

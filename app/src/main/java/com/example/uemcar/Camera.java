@@ -45,7 +45,7 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
         //int senales[];
         // Pasar a GPS las señales encontradas
         ((MainActivity) activity).infraccion.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
-        ((MainActivity) activity).gps.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
+        //((MainActivity) activity).gps.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
         return mRgba;  // Frame de camera en formato seleccionado
     }
 

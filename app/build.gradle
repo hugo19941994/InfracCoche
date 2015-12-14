@@ -41,7 +41,7 @@ model {
 
                 File curDir = file('./')
                 curDir = file(curDir.absolutePath)
-                String libsDir = curDir.absolutePath + "\\src\\main\\jniLibs\\armeabi-v7a\\"
+                String libsDir = curDir.absolutePath + "/src/main/jniLibs/armeabi-v7a/"
 
                 ldLibs += libsDir + "libopencv_java3.so"
                 ldLibs += libsDir + "libopencv_core.a"

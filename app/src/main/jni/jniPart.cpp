@@ -18,6 +18,7 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/text/ocr.hpp"
 #include "opencv2/opencv.hpp"
+#include "include/opencv2/imgproc.hpp"
 #include <stdio.h>
 
 using namespace std;
@@ -143,7 +144,8 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
 
         // Detectar circulos
         cvtColor(ROI, ROIg, CV_RGB2GRAY); // HoughCircles acepta solo imagenes en escala de grises
-        cv::HoughCircles(ROIg, circles, CV_HOUGH_GRADIENT, 1, ROIg.rows, 120, 60); // Añadir max y min
+        // Añadir max y min, Param2 relativo al tamaño del ROI
+        cv::HoughCircles(ROIg, circles, CV_HOUGH_GRADIENT, 1, ROIg.rows, 200, 60, 25, 360);
 
         // Dibujar circulos en Mat
         for (Vec3f c : circles)
@@ -174,16 +176,17 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
         case(1):  // RGB
             src = originalSrc;
             break;
-        case(2):  // Gray
+        case(2): {  // Gray CRASH
             cvtColor(originalSrc, src, CV_RGB2GRAY);
             break;
+        }
         case(3):  // HSV
             src = mHSV2;
             break;
-        case(4):  // Red Hue
+        case(4):  // Red Hue CRASH
             src = mRedHue2;
             break;
-        case(5):  // Contours
+        case(5):  // Contours CRASH
             src = mRedHue;
             break;
     }
