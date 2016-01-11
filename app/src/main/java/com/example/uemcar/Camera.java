@@ -3,7 +3,6 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
  */
 
 package com.example.uemcar;
@@ -15,11 +14,13 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
 
-    private Mat                    mRgba;
-    private CameraBridgeViewBase   mOpenCvCameraView;
+    private Mat mRgba, cameraFrame;
+    private CameraBridgeViewBase mOpenCvCameraView;
     public int cameraMode;
     Activity activity;
 
@@ -30,22 +31,30 @@ public class Camera implements CameraBridgeViewBase.CvCameraViewListener2 {
     @Override
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height, width, CvType.CV_8UC4);
+        cameraFrame = new Mat(height, width, CvType.CV_8UC4);
     }
 
     @Override
     public void onCameraViewStopped() {
         mRgba.release();
-        //mGray.release();
+        cameraFrame.release();
+    }
+
+    /**
+     * Guarda una foto en una carpeta de la tarjeta SD
+     */
+    public void storePhoto(String name) {
+        Imgcodecs.imwrite("/sdcard/infracciones/" + name + ".jpg", cameraFrame);
     }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
-        //mGray = inputFrame.gray();
-        //int senales[];
+        Imgproc.cvtColor(mRgba,cameraFrame,Imgproc.COLOR_RGB2BGR);
+
         // Pasar a GPS las señales encontradas
-        ((MainActivity) activity).infraccion.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
-        //((MainActivity) activity).gps.signs = FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
+        ((MainActivity) activity).infraccion.signs =
+                FindFeatures(mRgba.getNativeObjAddr(), cameraMode);
         return mRgba;  // Frame de camera en formato seleccionado
     }
 

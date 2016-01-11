@@ -3,7 +3,6 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
  */
 
 #include <jni.h>
@@ -29,44 +28,40 @@ using namespace cv::ml;
 Mat response, sample;
 Ptr<TrainData> trainingData;
 Ptr<KNearest> knn = KNearest::create();
-int trained = 0;
+int trained = 0;  // Usado para saber si se han leido los datos del modelo KNN
 
 template <typename T>
 std::string to_string(T value)
 {
-    //create an output string stream
     std::ostringstream os ;
-
-    //throw the value into the string stream
     os << value ;
-
-    //convert the string stream into a string and return
     return os.str() ;
 }
 
-void fillTraining() {
-    FileStorage Data("/sdcard/trainingdata.yml", FileStorage::READ); // Read traing data to a Mat
+/**
+ * Los datos de entrenamiento y etiquetas han de estar en la raiz de la tarjeta SD del telefono
+ */
+void fillData() {
+    FileStorage Data("/sdcard/trainingdata.yml", FileStorage::READ); // Pasar archivo a Mat
     Data["data"] >> sample;
     Data.release();
 
-}
-
-void fillLabel() {
-    FileStorage Label("/sdcard/labeldata.yml", FileStorage::READ); // Read label data to a Mat
+    FileStorage Label("/sdcard/labeldata.yml", FileStorage::READ); // Pasar archivo a Mat
     Label["label"] >> response;
     Label.release();
+
 }
 
 extern "C" {
 
 JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *env, jclass cls,
                                                                    jlong frame, jint mode) {
-
-    // Leer los datos de entrenamiento una vez
-    // Poner en su propia función y llamarla desde java
+    /**
+     * Leer los datos de entrenamiento una sola vez
+     * Configurar el modelo KNN
+     */
     if (trained == 0) {
-        fillLabel();
-        fillTraining();
+        fillData();
         trainingData = TrainData::create(sample, SampleTypes::ROW_SAMPLE, response);
         knn->setIsClassifier(true);
         knn->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
@@ -75,8 +70,10 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
         trained = 1;
     }
 
-    // Preparación para devolver un array de 5 ints
-    // https://stackoverflow.com/questions/1610045/how-to-return-an-array-from-jni-to-java
+    /**
+     * Preparación para devolver un array de 5 ints
+     * https://stackoverflow.com/questions/1610045/how-to-return-an-array-from-jni-to-java
+     */
     jintArray result;
     result = (env)->NewIntArray(5);
     if (result == NULL)
@@ -116,8 +113,6 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
     mRedHue.copyTo(mRedHue2);
 
     // Extraer contornos (blobs) usando Canny y findContours
-    cv::Mat contourMat;
-    Mat response_array;
     std::vector<std::vector<cv::Point> > contours;
     vector< Vec4i > hierarchy;
     Canny(mRedHue, mRedHue, 10, 25, 3);
@@ -137,14 +132,13 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
 
         // Dibujar circulos en Mat
         drawContours(src, contours, -1, Scalar(0, 255, 0));
-        Mat ROICanny = mRedHue(r);
 
         std::vector<cv::Vec3f> circles;
         Mat ROIg;
 
         // Detectar circulos
         cvtColor(ROI, ROIg, CV_RGB2GRAY); // HoughCircles acepta solo imagenes en escala de grises
-        // Añadir max y min, Param2 relativo al tamaño del ROI
+        // Param2 deberia ser relativo al tamaño del ROI (2*3.14*ROI.rows*porcentajePtos)
         cv::HoughCircles(ROIg, circles, CV_HOUGH_GRADIENT, 1, ROIg.rows, 200, 60, 25, 360);
 
         // Dibujar circulos en Mat
@@ -171,22 +165,21 @@ JNIEXPORT jintArray JNICALL Java_com_example_uemcar_Camera_FindFeatures(JNIEnv *
 
     // Modo de visión seleccionado
     switch(mode) {
-        case(0):  // Result
+        default:  // Result
             break;
         case(1):  // RGB
             src = originalSrc;
             break;
-        case(2): {  // Gray CRASH
+        case(2):  // Gray
             cvtColor(originalSrc, src, CV_RGB2GRAY);
             break;
-        }
         case(3):  // HSV
             src = mHSV2;
             break;
-        case(4):  // Red Hue CRASH
+        case(4):  // Red Hue
             src = mRedHue2;
             break;
-        case(5):  // Contours CRASH
+        case(5):  // Contours
             src = mRedHue;
             break;
     }

@@ -3,7 +3,8 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
+ *
+ * Modulo encargado de actualizar el mapa
  */
 
 package com.example.uemcar;
@@ -19,44 +20,38 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class Map {
 
+    Activity activity;
+    private GoogleMap mMap;
+
     public Map(final Activity act) {
         activity = act;
     }
 
-    Activity activity;
-    private GoogleMap mMap;
+    public void onCreate(){
+        setUpMapIfNeeded();
+    }
 
     public void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
         if (mMap == null) {
             // Try to obtain the map from the SupportMapFragment.
-            mMap = ((MapFragment) activity.getFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
+            mMap = ((MapFragment) activity.getFragmentManager()
+                    .findFragmentById(R.id.map)).getMap();
             mMap.setMyLocationEnabled(true);
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
-            }
         }
     }
 
-    public void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
-    }
-
     public void putMarker(Location location){
-
         double lat = location.getLatitude();
         double lon = location.getLongitude();
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lon)).title("Marker"));
     }
 
+    /**
+     * Pone un "pin" en la ultima posición GPS
+     */
     public void putMarkerHere(){
         putMarker(((MainActivity) activity).gps.mLastLocation);
-    }
-
-    public void onCreate(){
-        setUpMapIfNeeded();
     }
 
     public void moveCamera(CameraUpdate cu){

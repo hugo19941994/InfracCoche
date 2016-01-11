@@ -3,7 +3,6 @@
  * Nourdine Aliane
  * Mario Mata
  * Hugo Ferrando Seage
- * Licencia: Attribution-NonCommercial-NoDerivatives 4.0 International
  */
 
 package com.example.uemcar;
@@ -34,17 +33,16 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.drawer);
 
-        // Drawer
-        String[] choices;
+        // Menu lateral para elegir modo
         ListView mDrawerList;
-
+        String[] choices;
         choices = new String[6];
         choices[0] = "Results";
         choices[1] = "RGB";
         choices[2] = "Grey";
         choices[3] = "HLS";
         choices[4] = "Red Hue";
-        choices[5] = "Contours"; // Añadir contours filtered y contours with circles
+        choices[5] = "Contours";
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
         LayoutInflater inflater = getLayoutInflater();
@@ -52,7 +50,7 @@ public class MainActivity extends Activity {
         inflater.inflate(R.layout.main_layout, container);
 
         // Set the adapter for the list view
-        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+        mDrawerList.setAdapter(new ArrayAdapter<>(this,
                 R.layout.drawer_list_item, choices));
 
         // Set the list's click listener
@@ -91,7 +89,6 @@ public class MainActivity extends Activity {
     public void onDestroy() {
         super.onDestroy();
         camera.onDestroy();
-        gps.removeCallback();
         infraccion.removeCallback();
     }
 
