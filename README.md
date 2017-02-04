@@ -16,6 +16,3 @@ Aplicación para Android que detecta infracciones de tráfico gracias a la visi�
 4. Copiar keys/ a __Usuario/.android__
 4. Importar Proyecto
 5. Si hay problemas al compilar limpiar el entorno de trabajo (_Build/Clean Project_)
-
-## Licencia
-Este codigo usa la licencia [Attribution-NonCommercial-NoDerivatives 4.0 International](http://creativecommons.org/licenses/by-nc-nd/4.0/) de Creative Commons
